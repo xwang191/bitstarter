@@ -24,8 +24,33 @@ References:
 var fs = require('fs');
 var program = require('commander');
 var cheerio = require('cheerio');
-var HTMLFILE_DEFAULT = "index.html";
+var req = require('restler');
+var HTMLFILE_DEFAULT = "index.htm";
 var CHECKSFILE_DEFAULT = "checks.json";
+var URL_DEFAULT = "http://secret-headland-9963.herokuapp.com/";
+
+var assertURLExists = function(inURL) {
+    var instr = "";
+    //console.log("%s to be fetched.", inURL);
+    req.get(inURL).on('complete', function(data) {
+      instr = data;
+      //var checkJson = checkHtmlFile(data, program.checks);
+
+      $ = cheerio.load(data);
+      var checks = loadChecks(program.checks).sort();
+      var out = {};
+      for(var ii in checks) {
+          var present = $(checks[ii]).length > 0;
+          out[checks[ii]] = present;
+      }
+      var checkJson = out;
+
+      var outJson = JSON.stringify(checkJson, null, 4);
+      console.log(outJson);
+      //console.log("url content:\n %s\n", instr);
+    });
+    return instr;
+};
 
 var assertFileExists = function(infile) {
     var instr = infile.toString();
@@ -65,10 +90,14 @@ if(require.main == module) {
     program
         .option('-c, --checks <check_file>', 'Path to checks.json', clone(assertFileExists), CHECKSFILE_DEFAULT)
         .option('-f, --file <html_file>', 'Path to index.html', clone(assertFileExists), HTMLFILE_DEFAULT)
+        .option('--url <url>', 'URL to webpage', clone(assertURLExists), URL_DEFAULT)
         .parse(process.argv);
+    if( program.file) {
+    } else if( program.file) {
     var checkJson = checkHtmlFile(program.file, program.checks);
     var outJson = JSON.stringify(checkJson, null, 4);
     console.log(outJson);
+    }
 } else {
     exports.checkHtmlFile = checkHtmlFile;
 }
